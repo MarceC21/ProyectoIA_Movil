@@ -1,68 +1,50 @@
 package com.example.proyecto.ui.viewmodel
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyecto.data.model.Item
-import com.example.proyecto.domain.usecase.GetItemsUseCase
+import com.example.proyecto.data.model.ChatResponse
+import com.example.proyecto.data.repository.OpenAiRepository
+import com.example.proyecto.domain.usecase.GetChatResponseUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-
-sealed class HomeIntent {
-    data class Search(val query: String) : HomeIntent()
-    object Load : HomeIntent()
+// MVI: Estados de la UI
+sealed class UiState {
+    object Idle : UiState()
+    object Loading : UiState()
+    data class Success(val response: String) : UiState()
+    data class Error(val message: String) : UiState()
 }
 
+// MVI: Intents (acciones del usuario)
+sealed class UiIntent {
+    data class SendPrompt(val prompt: String) : UiIntent()
+}
 
-data class HomeState(
-    val isLoading: Boolean = false,
-    val items: List<Item> = emptyList(),
-    val query: String = "",
-    val error: String? = null
-)
+class HomeViewModel : ViewModel() {
+    private val repository = OpenAiRepository()
+    private val useCase = GetChatResponseUseCase(repository)
 
+    private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-class HomeViewModel(private val getItems: GetItemsUseCase) : ViewModel() {
-    private val _state = MutableStateFlow(HomeState())
-    val state: StateFlow<HomeState> = _state
-
-
-    init {
-        handleIntent(HomeIntent.Load)
-    }
-
-
-    fun handleIntent(intent: HomeIntent) {
+    fun processIntent(intent: UiIntent) {
         when (intent) {
-            is HomeIntent.Load -> loadItems()
-            is HomeIntent.Search -> search(intent.query)
+            is UiIntent.SendPrompt -> sendPrompt(intent.prompt)
         }
     }
 
-
-    private fun loadItems() {
-        _state.value = _state.value.copy(isLoading = true, error = null)
+    private fun sendPrompt(prompt: String) {
         viewModelScope.launch {
-            try {
-                val items = getItems()
-                _state.value = _state.value.copy(isLoading = false, items = items)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false, error = e.message)
-            }
-        }
-    }
-
-
-    private fun search(query: String) {
-        _state.value = _state.value.copy(isLoading = true, query = query, error = null)
-        viewModelScope.launch {
-            try {
-                val items = getItems(query)
-                _state.value = _state.value.copy(isLoading = false, items = items)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false, error = e.message)
+            _uiState.value = UiState.Loading
+            val response: ChatResponse? = useCase(prompt)
+            _uiState.value = if (response != null && response.choices.isNotEmpty()) {
+                val content = response.choices.first().message.content
+                UiState.Success(content)
+            } else {
+                UiState.Error("Error al obtener respuesta de OpenAI. Verifica tu clave API.")
             }
         }
     }

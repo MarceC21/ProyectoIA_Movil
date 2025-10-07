@@ -1,86 +1,102 @@
 package com.example.proyecto.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.proyecto.data.model.Item
-import com.example.proyecto.ui.components.ItemCard
-import com.example.proyecto.ui.viewmodel.HomeIntent
+import androidx.lifecycle.viewmodel.compose.viewModel  // Para viewModel() en Compose
 import com.example.proyecto.ui.viewmodel.HomeViewModel
+import com.example.proyecto.ui.viewmodel.UiIntent
+import com.example.proyecto.ui.viewmodel.UiState
+import androidx.compose.runtime.collectAsState  // IMPORT CORRECTO: De Compose runtime, no coroutines
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel,
-    onItemClick: (Item) -> Unit = {}
+    viewModel: HomeViewModel = viewModel()  // Se resuelve con el import y dependencia
 ) {
-    val state by viewModel.state.collectAsState()
+    var prompt by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()  // Ahora se resuelve correctamente (línea ~18)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("MVI Compose Template") }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.handleIntent(HomeIntent.Load) }
-            ) {
-                Text("↻")
-            }
-        }
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Chat con OpenAI",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(8.dp)
-                .fillMaxSize()
+        OutlinedTextField(
+            value = prompt,
+            onValueChange = { prompt = it },
+            label = { Text("Ingresa tu prompt") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                if (prompt.isNotBlank()) {
+                    viewModel.processIntent(UiIntent.SendPrompt(prompt))
+                    prompt = ""  // Limpia el campo
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = prompt.isNotBlank()
         ) {
-            // Input
-            var text by remember { mutableStateOf(state.query) }
+            Text("Enviar a OpenAI")
+        }
 
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Buscar") },
-                modifier = Modifier.fillMaxWidth()
-            )
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { viewModel.handleIntent(HomeIntent.Search(text)) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Buscar")
+        when (uiState) {
+            is UiState.Idle -> {
+                Text(
+                    text = "Ingresa un prompt y presiona enviar para chatear con IA.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            when {
-                state.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-                }
-
-                state.error != null -> {
-                    Text(
-                        text = "Error: ${state.error}",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
-                else -> {
-                    LazyColumn {
-                        items(state.items) { item ->
-                            ItemCard(item = item, onClick = onItemClick)
-                        }
+            is UiState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Text("Generando respuesta...")
+            }
+            is UiState.Success -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Respuesta de OpenAI:",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = (uiState as UiState.Success).response,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 }
+            }
+            is UiState.Error -> {
+                Text(
+                    text = "Error: ${(uiState as UiState.Error).message}",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
