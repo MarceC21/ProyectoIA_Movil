@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.devtools.ksp)
+
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -53,14 +55,14 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()  // Ahora 1.5.15
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)  // NUEVO: Para viewModel() en Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -68,6 +70,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
 
     // OpenAI API
     implementation(libs.retrofit)
@@ -78,10 +83,10 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
-    // Coroutines para MVI async
+    // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    // Tests (básicos, sin storage problemático)
+    // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,101 +1,127 @@
 package com.example.proyecto.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel  // Para viewModel() en Compose
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.example.proyecto.ui.viewmodel.HomeViewModel
 import com.example.proyecto.ui.viewmodel.UiIntent
 import com.example.proyecto.ui.viewmodel.UiState
-import androidx.compose.runtime.collectAsState  // IMPORT CORRECTO: De Compose runtime, no coroutines
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel()  // Se resuelve con el import y dependencia
+    navController: NavController,
+    viewModel: HomeViewModel
 ) {
-    var prompt by remember { mutableStateOf("") }
-    val uiState by viewModel.uiState.collectAsState()  // Ahora se resuelve correctamente (línea ~18)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    var animalInput by remember { mutableStateOf("") }
+
+    // NUEVO: LaunchedEffect para detectar Success y navegar UNA VEZ
+    LaunchedEffect(uiState) {
+        if (uiState is UiState.Success) {
+            val json = viewModel.animalInfoToJson((uiState as UiState.Success).animalInfo)
+            navController.navigate("result/$json")
+            viewModel.resetState()  // Reset después de navegar (usa el método del ViewModel)
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        // Título
         Text(
-            text = "Chat con OpenAI",
-            style = MaterialTheme.typography.headlineMedium
+            text = "MiniZoológico",
+            style = MaterialTheme.typography.headlineLarge,
+            modifier = Modifier.padding(bottom = 32.dp)
         )
 
+        // Input
         OutlinedTextField(
-            value = prompt,
-            onValueChange = { prompt = it },
-            label = { Text("Ingresa tu prompt") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            modifier = Modifier.fillMaxWidth()
+            value = animalInput,
+            onValueChange = { animalInput = it },
+            label = { Text("Nombre del animal (ej: león)") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            singleLine = true
         )
 
-        Button(
-            onClick = {
-                if (prompt.isNotBlank()) {
-                    viewModel.processIntent(UiIntent.SendPrompt(prompt))
-                    prompt = ""  // Limpia el campo
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = prompt.isNotBlank()
+        // Dos botones
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Enviar a OpenAI")
+            Button(
+                onClick = {
+                    viewModel.processIntent(UiIntent.SendAnimal(animalInput))
+                    animalInput = ""
+                },
+                modifier = Modifier.weight(1f),
+                enabled = animalInput.isNotBlank()
+            ) {
+                Text("Buscar Animal")
+            }
+            Button(
+                onClick = { viewModel.processIntent(UiIntent.GetRandomAnimal) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Animal Aleatorio")
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Bottom nav para About (opcional, ajusta si no lo quieres)
+        NavigationBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally)
+        ) {
+            NavigationBarItem(
+                icon = { Icon(Icons.Default.Info, contentDescription = null) },  // Importa Icons
+                label = { Text("About") },
+                selected = false,
+                onClick = { navController.navigate("about") }
+            )
+        }
 
+        // Manejar Loading y Error (Success se maneja en LaunchedEffect)
         when (uiState) {
-            is UiState.Idle -> {
-                Text(
-                    text = "Ingresa un prompt y presiona enviar para chatear con IA.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
             is UiState.Loading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-                Text("Generando respuesta...")
-            }
-            is UiState.Success -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(top = 16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Respuesta de OpenAI:",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = (uiState as UiState.Success).response,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Buscando...")
                 }
             }
             is UiState.Error -> {
                 Text(
                     text = "Error: ${(uiState as UiState.Error).message}",
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+            else -> {
+                // Idle: Mensaje opcional
+                Text(
+                    text = "Busca un animal o elige uno aleatorio para aprender sobre él.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
         }
