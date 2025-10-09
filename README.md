@@ -14,8 +14,6 @@
   - Buscar un animal por nombre (e.g., "león") y obtener info generada por IA.
   - Generar un animal aleatorio.
   - Navegación a pantalla de resultados con datos estructurados.
-  - Soporte opcional para imágenes de Unsplash (en desarrollo; por ahora usa placeholders).
-  - Pantalla "About" con info del proyecto.
 - **Tecnologías usadas**:
   - **Lenguaje**: Kotlin.
   - **UI**: Jetpack Compose (Material3).
@@ -34,7 +32,7 @@ La app es un prototipo educativo para aprender sobre animales de forma interacti
 - **Dependencias**: Gradle 8.0+ (configurado en `gradle/wrapper/gradle-wrapper.properties`).
 
 ## Configuración de API Keys
-La app usa dos APIs externas que requieren claves gratuitas. **No incluyas las keys en el repositorio** (usa `local.properties` para mantenerlas privadas).
+La app APIs externas que requieren claves gratuitas. **No incluyas las keys en el repositorio** (usa `local.properties` para mantenerlas privadas).
 
 ### 1. **OpenAI API Key** (Obligatoria – para texto de animales)
    - Ve a [platform.openai.com/api-keys](https://platform.openai.com/api-keys) y crea una cuenta (gratuita con créditos iniciales).
