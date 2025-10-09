@@ -6,8 +6,8 @@
 - **José Rivera** – Desarrollo principal, integración de OpenAI y UI.
 - **Marcela Castillo** – Diseño de la interfaz, manejo de estados y navegación.
 
-##Video de la app funcionando: 
-adf
+## Video de la app funcionando:
+- https://www.youtube.com/shorts/5oGUGPxA10Q 
 
 ## Descripción
 - **Funcionalidades principales**:
@@ -56,25 +56,30 @@ La app usa dos APIs externas que requieren claves gratuitas. **No incluyas las k
      ```
    - **Límites**: 3 requests/minuto en plan gratuito. Si excedes, actualiza a pago ($0.002/1k tokens).
 
-### 2. **Unsplash API Key** (Opcional – para imágenes; en desarrollo)
-   - Ve a [unsplash.com/developers](https://unsplash.com/developers), regístrate y crea una "New Application".
-   - Copia la **Access Key** (empieza con letras/números, e.g., `F5eQaJBD...`).
-   - Agrega a `local.properties`:
-     ```
-     UNSPLASH_API_KEY=tu-access-key-unsplash-real-aqui
-     ```
-   - En `app/build.gradle.kts` (en `defaultConfig`), agrega:
-     ```kotlin
-     val unsplashKey: String = localProps.getProperty("UNSPLASH_API_KEY") ?: ""
-     buildConfigField("String", "UNSPLASH_API_KEY", "\"$unsplashKey\"")
-     ```
-   - **Notas**: 
-     - Sin key: 50 requests/hora. Con key: Ilimitado para desarrollo (cumple directrices: hotlink URLs, attribution en app).
-     - Si no funciona: Verifica logs en Logcat ("UnsplashRepository"). Queries en inglés dan mejores resultados (e.g., "lion" para "león").
-     - Attribution: La app incluye crédito al fotógrafo (e.g., "Foto por John Doe en Unsplash").
-
-- **Sync Gradle**: Después de editar `local.properties`, ve a File > Sync Project with Gradle Files.
-- **Seguridad**: Agrega `local.properties` a `.gitignore` para no subir keys al Git.
 
 ## Cómo correr la app
 1. **Clona el proyecto**:
+git clone https://tu-repo.com/MiniZoológico.git cd MiniZoológico
+
+2. **Abre en Android Studio**: File > Open > Selecciona la carpeta del proyecto.
+
+3. **Configura API Keys**: Sigue la sección anterior (obligatorio OpenAI; opcional Unsplash).
+
+4. **Sync y Build**:
+- File > Sync Project with Gradle Files.
+- Build > Clean Project > Rebuild Project.
+
+5. **Run**:
+- Conecta un dispositivo o emulador (API 24+).
+- Click Run (Shift + F10) o selecciona "Debug".
+- Abre la app: Busca "león" o elige "Animal Aleatorio" → Ve a ResultScreen con info.
+
+## Estructura del proyecto
+- **app/src/main/java/com/example/proyecto/**:
+- **data/**: Modelos (AnimalInfo, UnsplashResponse), Repos (OpenAiRepository, UnsplashRepository), Remote (UnsplashApi).
+- **domain/usecase/**: UseCases (GetChatResponseUseCase, GetAnimalImageUseCase).
+- **ui/screens/**: HomeScreen, ResultScreen, AboutScreen.
+- **ui/viewmodel/**: HomeViewModel (MVVM central).
+- **app/build.gradle.kts**: Dependencias (Retrofit, Moshi, Compose, etc.).
+- **gradle/libs.versions.toml**: Versiones centralizadas (Kotlin 1.9.10, Compose 1.5.4, etc.).
+
